@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store File in DB</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            text-align: center;
+        }
+
+        input,
+        button {
+            margin: 10px;
+        }
+
+        #saved-files {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            background: #f4f4f4;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .file-item a {
+            text-decoration: none;
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Upload File</h2>
+    <input type="file" id="file-input">
+    <button id="upload-btn">Upload</button>
+    <div id="message"></div>
+    <pre id="file-content"></pre>
+
+    <h2>Saved Files:</h2>
+    <div id="saved-files"></div>
+
+    <script>
+        document.getElementById("upload-btn").addEventListener("click", async () => {
+            const fileInput = document.getElementById("file-input");
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file.");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = async () => {
+                const fileContent = reader.result;
+
+                if (file.type.startsWith("text/")) {
+                    document.getElementById("file-content").textContent = fileContent; // Display text file content
+                } else {
+                    document.getElementById("file-content").textContent = "File uploaded successfully!";
+                }
+
+                try {
+                    const response = await fetch("http://localhost:5000/upload", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ filename: file.name, content: fileContent })
+                    });
+
+                    const result = await response.json();
+                    alert(result.message);
+
+                    fetchSavedFiles(); // Refresh file list
+
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert(`Failed to upload file. Please try again.`);
+                }
+            };
+
+            // Use readAsDataURL for non-text files to handle images, PDFs, etc.
+            if (file.type.startsWith("text/")) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function fetchSavedFiles() {
+            try {
+                const response = await fetch("http://localhost:5000/files", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                });
+                const savedFiles = await response.json();
+
+                const savedFilesContainer = document.getElementById("saved-files");
+                savedFilesContainer.innerHTML = "";
+
+                savedFiles.forEach((file) => {
+                    const fileElement = document.createElement("div");
+                    fileElement.classList.add("file-item");
+                    fileElement.innerHTML = `
+                        <span>${file.filename}</span>
+                        <a href="http://localhost:5000/files/${file.filename}" target="_blank">Download</a>
+                    `;
+                    savedFilesContainer.appendChild(fileElement);
+                });
+            } catch (error) {
+                console.error("Error fetching files:", error);
+            }
+        }
+
+        // Fetch saved files on page load
+        fetchSavedFiles();
+    </script>
+
+</body>
+
+</html>
