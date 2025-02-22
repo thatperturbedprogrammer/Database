@@ -1,5 +1,6 @@
-prisma Singleton Pattern
+// prisma Singleton Pattern
 // src/lib/prisma.ts
+
 import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
